@@ -4,7 +4,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Mi Página JSP</title>
+    <title>Bienvenido a la aplicacion de gestion de empleados</title>
 </head>
 <body>
 <!-- Conjuntamente con MVC seutiliza el patron Facade, que es un patrón que divide al proyecto en capas, que pueden facilmente
@@ -18,22 +18,14 @@ y no su implementacion.
 3º Controllers .- que puede haber varios
 4º Implementaciones .-
 5º Model .-
-
 -->
 
 <!-- Para agregar codigo de Java en el documento html se utiliza el lenguaje de scripting llamado scrpitlet -->
-    <h2 style="color: green"> <%= "Hello World!. We are looking for the old JSP (Java Server Pages)" %></h2>
-<!-- 1º Creamos una lista inmutable -->
-<%
-List <String> nombres = List.of("Jeronimo", "Juan", "Maria");
-%>
-    <ul>
-    <!--3º  Abrimos el bucle en Java -->
-    <% for (String nombre : nombres) { %>
-    <!-- 4º Inyectamos el nombre con una expresion java. utilizamos = para mostrar el resultado de una variable -->
-        <li><%= nombre %></li>
-    <!-- 5º Abrimos otro scrpitlet sólo para cerrar la llave del bucle for -->
-    <% } %>
-    </ul>
+    <h1> Bienvenido a la aplicacion de gestion de empleados</h1>
+
+    <div>
+    <a href="MainController">Mostrar listado de empleados</a>
+    </div>
+
 </body>
 </html>
