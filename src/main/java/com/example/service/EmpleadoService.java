@@ -1,6 +1,6 @@
 package com.example.service;
 
-public interface IEmpleadoService {
+public interface EmpleadoService {
 
     public abstract boolean isConnectionOK();
 }

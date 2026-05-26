@@ -12,16 +12,18 @@ public class DBConexion {
     private final String password;
     private static final Logger LOGGER = Logger.getLogger("DBConexion");
 
+
     //.................... Constructor ............................
     public DBConexion(String username, String password) {      // Recibe las credenciales dinámicamente
         this.username = username;
         this.password = password;
     }
 
+
     //................................ getConnection .............................................
-    // Importante: Lanza SQLException para que el Service sepa si falló
+    // Importante: Lanza SQLException para que el Service sepa si falló. Esta advertencia obliga a la clase a que lo llame (EmpleadoServiceImpl) a usar un bloque try-catch para manejar el problema.
     public Connection getConnection() throws SQLException {
-        String urlConnection = "jdbc:mysql://192.168.122.43:3306/empresa-crud-empleados?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+        String urlConnection = "jdbc:mysql://192.168.122.43:3306/empresa-crud-empleados";
 
         Properties info = new Properties();
         info.put("user", this.username); // MySQL JDBC usa "user", no "username"

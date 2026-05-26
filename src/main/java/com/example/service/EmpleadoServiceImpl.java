@@ -4,7 +4,7 @@ import com.example.config.DBConexion;
 import java.sql.Connection;
 import java.sql.SQLException;
 
-public class EmpleadoServiceImpl implements IEmpleadoService {
+public class EmpleadoServiceImpl implements EmpleadoService {
 
     private final DBConexion dbConexion;     // Declaramos la variable de configuración como atributo de la clase
 
@@ -19,10 +19,13 @@ public class EmpleadoServiceImpl implements IEmpleadoService {
     public boolean isConnectionOK() {
 
         // Abrimos la conexión DENTRO del try-with-resources para asegurar su cierre automático
+        //La interfaz Connection de Java hereda de AutoCloseable. Al declararla dentro del try (Connection conn = ... ),
+        // Java se encarga de cerrarla automáticamente al salir del bloque.
         try (Connection conn = dbConexion.getConnection()) {
             // Si llega aquí sin lanzar excepción y no está cerrada, la conexión funciona
             return conn != null && !conn.isClosed();
-
+        //Cierre automático: Al llegar a la llave de cierre del try, el mecanismo try-with-resources de Java llama
+        // automáticamente al método conn.close().
         } catch (SQLException e) {
             // Si el método getConnection() falló, entra aquí y devuelve false de forma segura
             System.err.println("La comprobación de conexión ha fallado: " + e.getMessage());
