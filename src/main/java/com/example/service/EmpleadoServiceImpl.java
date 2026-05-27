@@ -1,35 +1,30 @@
 package com.example.service;
 
-import com.example.config.DBConexion;
-import java.sql.Connection;
-import java.sql.SQLException;
+import com.example.dao.EmpleadoRepository;
+import com.example.dao.EmpleadoRepositoryImpl;
+import com.example.model.Empleado;
+
+import java.util.List;
 
 public class EmpleadoServiceImpl implements EmpleadoService {
 
-    private final DBConexion dbConexion;     // Declaramos la variable de configuración como atributo de la clase
+    // El servicio consume la interfaz del repositorio
+    private final EmpleadoRepository empleadoRepository;
 
-
-    //............................. Constructor .......................................
-    public EmpleadoServiceImpl(DBConexion dbConexion) {     // Recibe la configuración desde el MainController
-        this.dbConexion = dbConexion;
+    // Al estilo Spring Boot, asignamos la implementación real en el constructor
+    public EmpleadoServiceImpl() {
+        this.empleadoRepository = new EmpleadoRepositoryImpl();
     }
 
     //................................. IsConnectionOK ..............................................
     @Override
     public boolean isConnectionOK() {
+        return empleadoRepository.checkConnection();
+    }
 
-        // Abrimos la conexión DENTRO del try-with-resources para asegurar su cierre automático
-        //La interfaz Connection de Java hereda de AutoCloseable. Al declararla dentro del try (Connection conn = ... ),
-        // Java se encarga de cerrarla automáticamente al salir del bloque.
-        try (Connection conn = dbConexion.getConnection()) {
-            // Si llega aquí sin lanzar excepción y no está cerrada, la conexión funciona
-            return conn != null && !conn.isClosed();
-        //Cierre automático: Al llegar a la llave de cierre del try, el mecanismo try-with-resources de Java llama
-        // automáticamente al método conn.close().
-        } catch (SQLException e) {
-            // Si el método getConnection() falló, entra aquí y devuelve false de forma segura
-            System.err.println("La comprobación de conexión ha fallado: " + e.getMessage());
-            return false;
-        }
+    //................................. listarEmpleados ..............................................
+    @Override
+    public List<Empleado> listarEmpleados() {     // Pedimos los datos al repositorio y devolverlos
+        return empleadoRepository.findAll();
     }
 }

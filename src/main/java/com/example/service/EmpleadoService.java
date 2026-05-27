@@ -1,6 +1,11 @@
 package com.example.service;
 
+import com.example.model.Empleado;
+
+import java.util.List;
+
 public interface EmpleadoService {
 
-    public abstract boolean isConnectionOK();
+    boolean isConnectionOK();
+    List<Empleado> listarEmpleados();
 }
