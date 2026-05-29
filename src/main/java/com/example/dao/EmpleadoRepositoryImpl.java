@@ -165,7 +165,7 @@ public class EmpleadoRepositoryImpl implements EmpleadoRepository {
     }
 
 
-    //................................. guardar ..............................................
+    //................................. save ..............................................
     @Override
     public void save(Empleado empleado) {
         // Aseguramos meter explícitamente el campo fechaAlta en la consulta SQL
@@ -181,6 +181,9 @@ public class EmpleadoRepositoryImpl implements EmpleadoRepository {
             conn = dbConexion.getConnection();
             // Desactivamos el auto-commit para que toda la inserción sea una transacción única
             conn.setAutoCommit(false);
+
+            // VARIABLE DECLARADA AQUÍ (Para que sea visible en todo el método)
+            int empleadoId = 0;
 
             // 1. Insertar el Empleado y recuperar la ID autogenerada de la base de datos
             try (PreparedStatement psEmp = conn.prepareStatement(sqlEmpleado, Statement.RETURN_GENERATED_KEYS)) {
@@ -199,7 +202,7 @@ public class EmpleadoRepositoryImpl implements EmpleadoRepository {
                 psEmp.setDouble(6, empleado.salario());
 
                 if (empleado.departamento() != null) {
-                    psEmp.setInt(7, empleado.departamento().getId());
+                    psEmp.setInt(7, empleado.departamento().getId()); // Volvemos a .getId() porque es una clase estándar
                 } else {
                     psEmp.setNull(7, Types.INTEGER);
                 }
@@ -207,7 +210,6 @@ public class EmpleadoRepositoryImpl implements EmpleadoRepository {
                 psEmp.executeUpdate();
 
                 // Recuperar la ID recién generada
-                int empleadoId = 0;
                 try (ResultSet generatedKeys = psEmp.getGeneratedKeys()) {
                     if (generatedKeys.next()) {
                         empleadoId = generatedKeys.getInt(1);
@@ -215,35 +217,35 @@ public class EmpleadoRepositoryImpl implements EmpleadoRepository {
                         throw new SQLException("Error al obtener la ID del empleado insertado.");
                     }
                 }
+            } // El PreparedStatement de empleado se cierra de forma segura aquí
 
-                // 2. Insertar los teléfonos asociados al ID obtenido
-                if (empleado.telefonos() != null && !empleado.telefonos().isEmpty()) {
-                    try (PreparedStatement psTel = conn.prepareStatement(sqlTelefono)) {
-                        for (String tel : empleado.telefonos()) {
-                            psTel.setString(1, tel);
-                            psTel.setInt(2, empleadoId);
-                            psTel.addBatch();
-                        }
-                        psTel.executeBatch();
+            // 2. Insertar los teléfonos asociados al ID obtenido
+            if (empleado.telefonos() != null && !empleado.telefonos().isEmpty()) {
+                try (PreparedStatement psTel = conn.prepareStatement(sqlTelefono)) {
+                    for (String tel : empleado.telefonos()) {
+                        psTel.setString(1, tel);
+                        psTel.setInt(2, empleadoId);
+                        psTel.addBatch();
                     }
+                    psTel.executeBatch();
                 }
-
-                // 3. Insertar los correos asociados al ID obtenido
-                if (empleado.correos() != null && !empleado.correos().isEmpty()) {
-                    try (PreparedStatement psCorr = conn.prepareStatement(sqlCorreo)) {
-                        for (String correo : empleado.correos()) {
-                            psCorr.setString(1, correo);
-                            psCorr.setInt(2, empleadoId);
-                            psCorr.addBatch();
-                        }
-                        psCorr.executeBatch();
-                    }
-                }
-
-                // Si todo ha ido bien, consolidamos la transacción completa
-                conn.commit();
-                LOGGER.info("Empleado guardado con éxito mediante save(). ID: " + empleadoId);
             }
+
+            // 3. Insertar los correos asociados al ID obtenido
+            if (empleado.correos() != null && !empleado.correos().isEmpty()) {
+                try (PreparedStatement psCorr = conn.prepareStatement(sqlCorreo)) {
+                    for (String correo : empleado.correos()) {
+                        psCorr.setString(1, correo);
+                        psCorr.setInt(2, empleadoId);
+                        psCorr.addBatch();
+                    }
+                    psCorr.executeBatch();
+                }
+            }
+
+            // Si todo ha ido bien, consolidamos la transacción completa
+            conn.commit();
+            LOGGER.info("Empleado guardado con éxito mediante save(). ID: " + empleadoId);
 
         } catch (SQLException e) {
             if (conn != null) {

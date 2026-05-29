@@ -78,12 +78,12 @@ public class EmpleadoServiceImpl implements EmpleadoService {
             throw new IllegalArgumentException("Debe asociar un departamento válido al empleado.");
         }
 
-        // Validación del patrón/formato de email si el campo contiene información
-        if (!emp.correos().isEmpty() && emp.correos().get(0) != null && !emp.correos().get(0).isBlank()) {
-            String email = emp.correos().get(0);
-            if (!email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
-                throw new IllegalArgumentException("La dirección de correo electrónico introducida no tiene un formato válido.");
-            }
-        }
+//        // Validación del patrón/formato de email si el campo contiene información
+//        if (!emp.correos().isEmpty() && emp.correos().get(0) != null && !emp.correos().get(0).isBlank()) {
+//            String email = emp.correos().get(0);
+//            if (!email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+//                throw new IllegalArgumentException("La dirección de correo electrónico introducida no tiene un formato válido.");
+//            }
+//        }
     }
 }
