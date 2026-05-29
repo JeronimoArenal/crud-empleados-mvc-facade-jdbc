@@ -1,5 +1,5 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-
+<%@ page import="java.util.List" %>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -25,11 +25,10 @@
 
     <div class="container">
         <h1>Bienvenido a la aplicación de gestión de empleados</h1>
-        <p>Utiliza el siguiente enlace para consultar los registros en tiempo real desde la base de datos.</p>
 
         <div>
             <!-- Este enlace invoca al método doGet de tu MainController -->
-            <a href="../MainController" class="btn">Mostrar listado de empleados</a>
+            <a href="MainController" class="btn">Mostrar listado de empleados</a>
         </div>
     </div>
 

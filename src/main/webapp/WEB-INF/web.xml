@@ -8,11 +8,10 @@
         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd">
 
   <display-name>Archetype Created Web Application</display-name>
-
-  <!-- CONFIGURACIÓN: Le indicamos a Tomcat que la página inicial por defecto es nuestro Servlet -->
+  <!-- CONFIGURACIÓN: Le indicamos a Tomcat la página inicial por defecto bien .jsp o nombre de Servlet
   <welcome-file-list>
-    <welcome-file>MainController</welcome-file>
-  </welcome-file-list>
+    <welcome-file>index.jsp</welcome-file>
+  </welcome-file-list> -->
 
 </web-app>
 

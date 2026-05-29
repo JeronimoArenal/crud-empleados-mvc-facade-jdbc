@@ -17,14 +17,31 @@
 </head>
 <body>
 
- <%--   <a href="views/index.jsp" class="back-link">← Volver al Inicio</a> --%>
-    <h2>Registros obtenidos desde la Base de Datos</h2>
-
+<%--                                ACLARACIONES
+<% %> (Scriptlet de lógica): Sirve para escribir código Java puro que realiza acciones ocultas como
+//(crear variables, hacer un if, arrancar un bucle for).
+//<%= %> (Scriptlet de expresión): Sirve exclusivamente para pintar un valor en el HTML. Equivale a un System.out.print().
+//¿Por qué hay llaves sueltas?
+//Porque la estructura en Java es if (condicion) { ... } else { ... }.
+//Como metemos etiquetas HTML en medio, tenemos que abrir <% solo para cerrar la llave } de Java y abrir el else.
+ --%>
     <%
-        // 1º Recuperamos la lista y los posibles errores directamente del request
+
         List<Empleado> lista = (List<Empleado>) request.getAttribute("listaEmpleados");
         String errorMensaje = (String) request.getAttribute("errorMensaje");
+        int totalRegistros = (lista != null) ? lista.size() : 0;        // Calculamos el tamaño total de la lista
+    %>
 
+    <a href="${pageContext.request.contextPath}/index.jsp" class="back-link">← Volver al Inicio</a>
+    <a href="${pageContext.request.contextPath}/EmpleadoController">+ Añadir Empleado</a>
+    <a href="AltaController">+ Alta Empleado</a>
+
+    <div class="header-container">
+        <!-- El contador dinámico queda integrado aquí dentro -->
+        <h2 style="display: inline-block; margin: 0;">Registros obtenidos desde la Base de Datos (<%= totalRegistros %>)</h2>
+    </div>
+
+    <%
         // 2º Evaluamos de forma directa el estado de los datos
         if (errorMensaje != null) {
     %>
@@ -32,32 +49,52 @@
     <%
         } else if (lista != null && !lista.isEmpty()) {
     %>
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Nombre Completo</th>
-                        <th>Género</th>
-                        <th>Fecha Alta</th>
-                        <th>Salario</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <% for (Empleado emp : lista) { %>
-                        <tr>
-                            <td><%= emp.id() %></td>
-                            <td><%= emp.nombre() %> <%= emp.primerApellido() %> <%= emp.segundoApellido() %></td>
-                            <td><%= emp.genero() != null ? emp.genero() : "N/A" %></td>
-                            <td><%= emp.fechaAlta() != null ? emp.fechaAlta() : "N/A" %></td>
-                            <td>$<%= emp.salario() %></td>
-                        </tr>
-                    <% } %>
-                </tbody>
-            </table>
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Nombre Completo</th>
+            <th>Género</th>
+            <th>Departamento</th>
+            <th>Contacto</th>
+            <th>Fecha Alta</th>
+            <th>Salario</th>
+        </tr>
+    </thead>
+    <tbody>
+        <% for (Empleado emp : lista) { %>
+            <tr>
+                <!-- ÚNICO ENLACE EN EL ID -->
+                <td>
+                    <a class="table-link" href="${pageContext.request.contextPath}/EmpleadoController?accion=editar&id=<%= emp.id() %>">
+                        <%= emp.id() %>
+                    </a>
+                </td>
+
+                <!-- NOMBRE COMO TEXTO NORMAL -->
+                <td><%= emp.nombre() %> <%= emp.primerApellido() %> <%= emp.segundoApellido() %></td>
+
+                <td><%= emp.genero() != null ? emp.genero() : "N/A" %></td>
+
+                <td><%= emp.departamento() != null ? emp.departamento().getNombre() : "Sin asignar" %></td>
+
+                <td>
+                    <strong>Tel:</strong> <%= !emp.telefonos().isEmpty() ? emp.telefonos().get(0) : "N/A" %><br>
+                    <strong>Email:</strong> <%= !emp.correos().isEmpty() ? emp.correos().get(0) : "N/A" %>
+                </td>
+
+                <td><%= emp.fechaAlta() != null ? emp.fechaAlta() : "N/A" %></td>
+                <td>$<%= emp.salario() %></td>
+            </tr>
+        <% } %>
+    </tbody>
+
+</table>
+
     <%
         } else {
     %>
-            <p>No se encontraron registros en la tabla de empleados.</p>
+            <p style="margin-top: 20px;">No se encontraron registros en la tabla de empleados.</p>
     <%
         }
     %>
