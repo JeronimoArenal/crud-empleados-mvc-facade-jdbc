@@ -9,7 +9,9 @@ import com.example.model.Genero;
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -30,71 +32,14 @@ public class EmpleadoRepositoryImpl implements EmpleadoRepository {
         }
     }
 
-//    //................................. findAll ..............................................
-//    @Override
-//    public List<Empleado> findAll() {
-//        List<Empleado> lista = new ArrayList<>();
-////      String sql = "SELECT id, nombre, primerApellido, segundoApellido, fechaAlta, genero, salario FROM empleados";
-////      String sql = "SELECT * FROM `empresa-crud-empleados`.empleados";
-////        String sql = "SELECT * FROM empresa_crud_empleados.empleados";
-//        String sql = "SELECT e.id, e.nombre, e.primerApellido, e.segundoApellido, e.fechaAlta, e.genero, e.salario, " +
-//                "       d.id AS dept_id, d.nombre AS dept_nombre, " +
-//                "       t.numero AS tel_numero, c.email AS corr_email " +
-//                "FROM empresa_crud_empleados.empleados e " +
-//                "LEFT JOIN empresa_crud_empleados.departamentos d ON e.departamentos_id = d.id " +
-//                "LEFT JOIN empresa_crud_empleados.telefonos t ON e.id = t.empleados_id " +
-//                "LEFT JOIN empresa_crud_empleados.correos c ON e.id = c.empleados_id";
-//
-//        try (Connection conn = dbConexion.getConnection();
-//             PreparedStatement ps = conn.prepareStatement(sql);
-//             ResultSet rs = ps.executeQuery()) {
-//
-//            while (rs.next()) {
-//                // 1. Extraer datos primitivos y cadenas básicos
-//                int id = rs.getInt("id");
-//                String nombre = rs.getString("nombre");
-//                String primerApellido = rs.getString("primerApellido");
-//                String segundoApellido = rs.getString("segundoApellido");
-//                double salario = rs.getDouble("salario");
-//
-//                // 2. Usar explícitamente java.sql.Date para la conversión limpia
-//                Date sqlDate = rs.getDate("fechaAlta");
-//                LocalDate fechaAlta = (sqlDate != null) ? sqlDate.toLocalDate() : null;
-//
-//                // 3. Convertir el texto de la base de datos al Enum Genero
-//                String generoBD = rs.getString("genero");
-//                Genero genero = (generoBD != null) ? Genero.valueOf(generoBD.trim().toUpperCase()) : null;
-//
-//                // 4. Instanciar el record Empleado usando su constructor completo.
-//                Empleado emp = new Empleado(
-//                        id,
-//                        nombre,
-//                        primerApellido,
-//                        segundoApellido,
-//                        genero,
-//                        fechaAlta,
-//                        salario,
-//                        null,       // departamento
-//                        List.of(),  // telefonos
-//                        List.of()   // correos
-//                );
-//
-//                lista.add(emp);
-//            }
-//        } catch (SQLException e) {
-//            System.err.println("Error en Repository.findAll: " + e.getMessage());
-//            LOGGER.log(Level.SEVERE, "Error al ejecutar la consulta findAll en empleados", e);
-//        }
-//        return lista;
-//    }
-
     //................................. findAll ..............................................
     @Override
     public List<Empleado> findAll() {
-        // Usamos un LinkedHashMap para mantener el orden en el que vienen los empleados desde la BD
-        java.util.Map<Integer, Empleado> mapaEmpleados = new java.util.LinkedHashMap<>();
+        // Usamos un LinkedHashMap para mantener el orden en el que vienen los empleados desde la BD. Ademas nos permite agrupar
+        // las múltiples filas de contactos (teléfonos y correos) de un mismo empleado en un único objeto,
+        Map<Integer, Empleado> mapaEmpleados = new LinkedHashMap<>();
 
-        // Consulta con LEFT JOIN para traer toda la información relacional de golpe
+        // Consulta con LEFT JOIN para traer toda la información de los empleados incluidos los que no estan completos
         String sql = "SELECT e.id, e.nombre, e.primerApellido, e.segundoApellido, e.fechaAlta, e.genero, e.salario, " +
                 "       d.id AS dept_id, d.nombre AS dept_nombre, " +
                 "       t.numero AS tel_numero, c.email AS corr_email " +
@@ -110,7 +55,7 @@ public class EmpleadoRepositoryImpl implements EmpleadoRepository {
             while (rs.next()) {
                 int id = rs.getInt("id");
 
-                // Si el empleado aún no está en el mapa, lo creamos
+                // Si el empleado aún no está en el mapa, lo creamos asegurando que sólo existe una vez
                 if (!mapaEmpleados.containsKey(id)) {
                     String nombre = rs.getString("nombre");
                     String primerApellido = rs.getString("primerApellido");
@@ -164,11 +109,10 @@ public class EmpleadoRepositoryImpl implements EmpleadoRepository {
         return new ArrayList<>(mapaEmpleados.values());
     }
 
-
     //................................. save ..............................................
     @Override
+    //Si utilizamos throws Exception, y lo implementamos en otro obligamos a añadir tambien throws Exceptio al método
     public void save(Empleado empleado) {
-        // Aseguramos meter explícitamente el campo fechaAlta en la consulta SQL
         String sqlEmpleado = "INSERT INTO empresa_crud_empleados.empleados " +
                 "(nombre, primerApellido, segundoApellido, genero, fechaAlta, salario, departamentos_id) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?)";
@@ -176,106 +120,114 @@ public class EmpleadoRepositoryImpl implements EmpleadoRepository {
         String sqlTelefono = "INSERT INTO empresa_crud_empleados.telefonos (numero, empleados_id) VALUES (?, ?)";
         String sqlCorreo = "INSERT INTO empresa_crud_empleados.correos (email, empleados_id) VALUES (?, ?)";
 
-        Connection conn = null;
+        /**
+         * Utilizamos Prepared Statements(Objeto de JDBC que precompila la consulta en la base de datos usando marcadores ?)
+         * como defensa de los ataques de inyección de SQL.
+         * Separan la parte fija de la consulta de los parámetros que recibe la misma.
+         * El rendimiento es muy similar al de los procedimientos almacenados porque, una vez que se ejecuta la consulta,
+         * el componente analizador u optimizador de consultas no tiene que analizar nuevamente el plan de ejecución
+         * de la misma. Esta es compilada y guardada en el servidor, de forma tal que la próxima vez solamente
+         * hay que pasarle los parámetros variables para ejecutarla, logrando que la ejecución sea lo más rápida,
+         * eficiente y segura posible.
+         */
+
+        Connection conn = null;     //Inicializamos la variable
         try {
             conn = dbConexion.getConnection();
-            // Desactivamos el auto-commit para que toda la inserción sea una transacción única
+            // 1º Iniciamos la transacción (Todo se guarda o nada se guarda)
             conn.setAutoCommit(false);
 
-            // VARIABLE DECLARADA AQUÍ (Para que sea visible en todo el método)
             int empleadoId = 0;
 
-            // 1. Insertar el Empleado y recuperar la ID autogenerada de la base de datos
+            // 2º Insertamos el empleado usando PreparedStatement
             try (PreparedStatement psEmp = conn.prepareStatement(sqlEmpleado, Statement.RETURN_GENERATED_KEYS)) {
                 psEmp.setString(1, empleado.nombre());
                 psEmp.setString(2, empleado.primerApellido());
                 psEmp.setString(3, empleado.segundoApellido());
                 psEmp.setString(4, empleado.genero() != null ? empleado.genero().name() : null);
 
-                // SOLUCIÓN AL PROBLEMA: Pasamos la fecha seleccionada en el formulario JSP
                 if (empleado.fechaAlta() != null) {
-                    psEmp.setDate(5, java.sql.Date.valueOf(empleado.fechaAlta()));
+                    psEmp.setDate(5, Date.valueOf(empleado.fechaAlta()));
                 } else {
-                    psEmp.setNull(5, Types.DATE);
+                    psEmp.setNull(5, Types.DATE);       //Java le avisa al motor SQL que marque la celda de Fecha como NULL
                 }
 
                 psEmp.setDouble(6, empleado.salario());
 
                 if (empleado.departamento() != null) {
-                    psEmp.setInt(7, empleado.departamento().getId()); // Volvemos a .getId() porque es una clase estándar
+                    psEmp.setInt(7, empleado.departamento().getId());
                 } else {
-                    psEmp.setNull(7, Types.INTEGER);
+                    psEmp.setNull(7, java.sql.Types.INTEGER);   //Java le avisa al motor SQL que marque la celda int como NULL
                 }
 
+                //ejecutamos con Update porque no devuelve un conjunto de resultados, sino la cantidad de filas afectadas
                 psEmp.executeUpdate();
 
-                // Recuperar la ID recién generada
+                // 3º Recuperamos el ID autogenerado del empleado
                 try (ResultSet generatedKeys = psEmp.getGeneratedKeys()) {
                     if (generatedKeys.next()) {
-                        empleadoId = generatedKeys.getInt(1);
+                        empleadoId = generatedKeys.getInt(1);       //Asignamos el Id a la variable empeadoId;
                     } else {
-                        throw new SQLException("Error al obtener la ID del empleado insertado.");
+                        throw new SQLException("No se pudo obtener el ID del empleado.");
                     }
                 }
-            } // El PreparedStatement de empleado se cierra de forma segura aquí
+            }
 
-            // 2. Insertar los teléfonos asociados al ID obtenido
+            // 4º Insertamos los teléfonos de golpe usando Batch
             if (empleado.telefonos() != null && !empleado.telefonos().isEmpty()) {
                 try (PreparedStatement psTel = conn.prepareStatement(sqlTelefono)) {
-                    for (String tel : empleado.telefonos()) {
-                        psTel.setString(1, tel);
+                    for (String telefono : empleado.telefonos()) {
+                        psTel.setString(1, telefono);
                         psTel.setInt(2, empleadoId);
-                        psTel.addBatch();
+                        psTel.addBatch(); // Se acumula en memoria
                     }
-                    psTel.executeBatch();
+                    psTel.executeBatch(); // Se envía un único viaje a la base de datos
                 }
             }
 
-            // 3. Insertar los correos asociados al ID obtenido
+            // 5º Insertamos los correos de golpe usando Batch
             if (empleado.correos() != null && !empleado.correos().isEmpty()) {
-                try (PreparedStatement psCorr = conn.prepareStatement(sqlCorreo)) {
+                try (PreparedStatement psCorreo = conn.prepareStatement(sqlCorreo)) {
                     for (String correo : empleado.correos()) {
-                        psCorr.setString(1, correo);
-                        psCorr.setInt(2, empleadoId);
-                        psCorr.addBatch();
+                        psCorreo.setString(1, correo);
+                        psCorreo.setInt(2, empleadoId);
+                        psCorreo.addBatch(); // Se acumula en memoria
                     }
-                    psCorr.executeBatch();
+                    psCorreo.executeBatch(); // Se envía todo junto de una vez a la base de datos
                 }
             }
 
-            // Si todo ha ido bien, consolidamos la transacción completa
+            // 6º Si todo ha ido bien, confirmamos los cambios en la BD
             conn.commit();
-            LOGGER.info("Empleado guardado con éxito mediante save(). ID: " + empleadoId);
 
         } catch (SQLException e) {
+            // Si algo falla, cancelamos absolutamente todo para no dejar datos huérfanos
             if (conn != null) {
                 try {
-                    conn.rollback(); // Cancelamos todo si ocurre algún error
-                    LOGGER.warning("Se ha realizado un rollback en save() debido a un fallo.");
+                    conn.rollback();
                 } catch (SQLException ex) {
-                    LOGGER.log(Level.SEVERE, "Error al hacer rollback", ex);
+                    ex.printStackTrace();
                 }
             }
-            LOGGER.log(Level.SEVERE, "Error crítico en Repository.save", e);
-            throw new RuntimeException("Error al guardar el empleado en la base de datos: " + e.getMessage());
+            throw new RuntimeException("Error crítico al guardar el empleado y sus datos", e);
         } finally {
+            // Cerramos la conexión de forma segura
             if (conn != null) {
                 try {
-                    conn.close(); // Cerramos la conexión manualmente
+                    conn.close();
                 } catch (SQLException e) {
-                    LOGGER.log(Level.SEVERE, "Error al cerrar la conexión", e);
+                    e.printStackTrace();
                 }
             }
         }
     }
-
 
     //................................. findById ..............................................
     @Override
     public Empleado findById(int id) {
         Empleado empleado = null;
 
-        // Consulta relacional filtrando por el ID del empleado
+        // Consulta filtrando por el ID del empleado
         String sql = "SELECT e.id, e.nombre, e.primerApellido, e.segundoApellido, e.fechaAlta, e.genero, e.salario, " +
                 "       d.id AS dept_id, d.nombre AS dept_nombre, " +
                 "       t.numero AS tel_numero, c.email AS corr_email " +
@@ -335,110 +287,264 @@ public class EmpleadoRepositoryImpl implements EmpleadoRepository {
         return empleado;
     }
 
-    //................................. update (Estilo Merge Sincronizado) ..............................................
+//    //................................. update ..............................................
+//    @Override
+//    public void update(Empleado emp) {
+//        String sqlEmpleado = "UPDATE empresa_crud_empleados.empleados SET nombre = ?, primerApellido = ?, segundoApellido = ?, genero = ?, fechaAlta = ?, salario = ?, departamentos_id = ? WHERE id = ?";
+//
+//        // 1. Buscaremos qué teléfonos y correos tiene actualmente en la base de datos
+//        String sqlGetTels = "SELECT numero FROM empresa_crud_empleados.telefonos WHERE empleados_id = ?";
+//        String sqlGetCors = "SELECT email FROM empresa_crud_empleados.correos WHERE empleados_id = ?";
+//
+//        // 2. Operaciones diferenciales
+//        String sqlInsertTel = "INSERT INTO empresa_crud_empleados.telefonos (numero, empleados_id) VALUES (?, ?)";
+//        String sqlDeleteTel = "DELETE FROM empresa_crud_empleados.telefonos WHERE numero = ? AND empleados_id = ?";
+//
+//        String sqlInsertCor = "INSERT INTO empresa_crud_empleados.correos (email, empleados_id) VALUES (?, ?)";
+//        String sqlDeleteCor = "DELETE FROM empresa_crud_empleados.correos WHERE email = ? AND empleados_id = ?";
+//
+//        try (Connection conn = dbConexion.getConnection()) {
+//            //Iniciamos la transaccion
+//            conn.setAutoCommit(false);
+//
+//            try {
+//                // --- ACTUALIZAR EMPLEADO ---
+//                try (PreparedStatement psEmp = conn.prepareStatement(sqlEmpleado)) {
+//                    psEmp.setString(1, emp.nombre());
+//                    psEmp.setString(2, emp.primerApellido());
+//                    psEmp.setString(3, emp.segundoApellido());
+//                    psEmp.setString(4, emp.genero() != null ? emp.genero().name() : null);
+//
+//                    if (emp.fechaAlta() != null) {
+//                        psEmp.setDate(5, java.sql.Date.valueOf(emp.fechaAlta()));
+//                    } else {
+//                        psEmp.setNull(5, java.sql.Types.DATE);
+//                    }
+//
+//                    psEmp.setDouble(6, emp.salario());
+//                    if (emp.departamento() != null) {
+//                        psEmp.setInt(7, emp.departamento().getId());
+//                    } else {
+//                        psEmp.setNull(7, java.sql.Types.INTEGER);
+//                    }
+//                    psEmp.setInt(8, emp.id());
+//                    psEmp.executeUpdate();
+//                }
+//
+//                // --- SINCRONIZAR TELÉFONOS (Diferencial) ---
+//                java.util.Set<String> telefonosBD = new java.util.HashSet<>();
+//                try (PreparedStatement psGetTel = conn.prepareStatement(sqlGetTels)) {
+//                    psGetTel.setInt(1, emp.id());
+//                    try (ResultSet rs = psGetTel.executeQuery()) {
+//                        while (rs.next()) { telefonosBD.add(rs.getString("numero")); }
+//                    }
+//                }
+//
+//                java.util.List<String> telefonosNuevos = emp.telefonos() != null ? emp.telefonos() : new java.util.ArrayList<>();
+//
+//                // Insertar los que vienen en el objeto pero NO estaban en la BD
+//                try (PreparedStatement psInsTel = conn.prepareStatement(sqlInsertTel)) {
+//                    boolean tieneInserts = false;
+//                    for (String tel : telefonosNuevos) {
+//                        if (tel != null && !tel.isBlank() && !telefonosBD.contains(tel)) {
+//                            psInsTel.setString(1, tel);
+//                            psInsTel.setInt(2, emp.id());
+//                            psInsTel.addBatch();
+//                            tieneInserts = true;
+//                        }
+//                    }
+//                    if (tieneInserts) psInsTel.executeBatch();
+//                }
+//
+//                // Borrar los que estaban en la BD pero el usuario quitó en la interfaz
+//                try (PreparedStatement psDelTel = conn.prepareStatement(sqlDeleteTel)) {
+//                    boolean tieneDeletes = false;
+//                    for (String telBD : telefonosBD) {
+//                        if (!telefonosNuevos.contains(telBD)) {
+//                            psDelTel.setString(1, telBD);
+//                            psDelTel.setInt(2, emp.id());
+//                            psDelTel.addBatch();
+//                            tieneDeletes = true;
+//                        }
+//                    }
+//                    if (tieneDeletes) psDelTel.executeBatch();
+//                }
+//
+//                // --- SINCRONIZAR CORREOS (Diferencial) ---
+//                java.util.Set<String> correosBD = new java.util.HashSet<>();
+//                try (PreparedStatement psGetCor = conn.prepareStatement(sqlGetCors)) {
+//                    psGetCor.setInt(1, emp.id());
+//                    try (ResultSet rs = psGetCor.executeQuery()) {
+//                        while (rs.next()) { correosBD.add(rs.getString("email")); }
+//                    }
+//                }
+//
+//                java.util.List<String> correosNuevos = emp.correos() != null ? emp.correos() : new java.util.ArrayList<>();
+//
+//                // Insertar correos nuevos
+//                try (PreparedStatement psInsCor = conn.prepareStatement(sqlInsertCor)) {
+//                    boolean tieneInserts = false;
+//                    for (String cor : correosNuevos) {
+//                        if (cor != null && !cor.isBlank() && !correosBD.contains(cor)) {
+//                            psInsCor.setString(1, cor);
+//                            psInsCor.setInt(2, emp.id());
+//                            psInsCor.addBatch();
+//                            tieneInserts = true;
+//                        }
+//                    }
+//                    if (tieneInserts) psInsCor.executeBatch();
+//                }
+//
+//                // Borrar correos removidos
+//                try (PreparedStatement psDelCor = conn.prepareStatement(sqlDeleteCor)) {
+//                    boolean tieneDeletes = false;
+//                    for (String corBD : correosBD) {
+//                        if (!correosNuevos.contains(corBD)) {
+//                            psDelCor.setString(1, corBD);
+//                            psDelCor.setInt(2, emp.id());
+//                            psDelCor.addBatch();
+//                            tieneDeletes = true;
+//                        }
+//                    }
+//                    if (tieneDeletes) psDelCor.executeBatch();
+//                }
+//
+//                conn.commit();
+//                LOGGER.info("¡ÉXITO! Sincronización diferencial completada para el empleado ID " + emp.id());
+//
+//            } catch (SQLException ex) {
+//                conn.rollback();
+//                throw ex;
+//            }
+//        } catch (SQLException e) {
+//            LOGGER.log(Level.SEVERE, "Error en update diferencial", e);
+//            throw new RuntimeException("Error al actualizar el empleado: " + e.getMessage());
+//        }
+//    }
+
+    //................................. actualizar ..............................................
     @Override
-    public void update(Empleado emp) {
-        String sqlEmpleado = "UPDATE empresa_crud_empleados.empleados SET nombre = ?, primerApellido = ?, segundoApellido = ?, genero = ?, fechaAlta = ?, salario = ?, departamentos_id = ? WHERE id = ?";
+    public void update(Empleado empleado) {
+        String sqlUpdateEmpleado = "UPDATE empresa_crud_empleados.empleados SET " +
+                "nombre = ?, primerApellido = ?, segundoApellido = ?, genero = ?, fechaAlta = ?, salario = ?, departamentos_id = ? " +
+                "WHERE id = ?";
+        String sqlInsertTelefono = "INSERT INTO empresa_crud_empleados.telefonos (numero, empleados_id) VALUES (?, ?)";
+        String sqlInsertCorreo = "INSERT INTO empresa_crud_empleados.correos (email, empleados_id) VALUES (?, ?)";
+        String sqlDeleteTelefonos = "DELETE FROM empresa_crud_empleados.telefonos WHERE empleados_id = ?";
+        String sqlDeleteCorreos = "DELETE FROM empresa_crud_empleados.correos WHERE empleados_id = ?";
 
-        String sqlCheckTel = "SELECT COUNT(*) FROM empresa_crud_empleados.telefonos WHERE empleados_id = ?";
-        String sqlUpdateTel = "UPDATE empresa_crud_empleados.telefonos SET numero = ? WHERE empleados_id = ?";
-        String sqlInsertTel = "INSERT INTO empresa_crud_empleados.telefonos (numero, empleados_id) VALUES (?, ?)";
+        Connection conn = null;
+        try {
+            conn = dbConexion.getConnection();
+            conn.setAutoCommit(false); // Iniciamos transacción de esta manera no guarda nada hasta que demos la orden
 
-        String sqlCheckCor = "SELECT COUNT(*) FROM empresa_crud_empleados.correos WHERE empleados_id = ?";
-        String sqlUpdateCor = "UPDATE empresa_crud_empleados.correos SET email = ? WHERE empleados_id = ?";
-        String sqlInsertCor = "INSERT INTO empresa_crud_empleados.correos (email, empleados_id) VALUES (?, ?)";
-
-        try (Connection conn = dbConexion.getConnection()) {
-            conn.setAutoCommit(false); // @Transactional manual
-
-            try {
-                // 1. Actualizar los datos base del empleado (Incluyendo la fecha)
-                try (PreparedStatement psEmp = conn.prepareStatement(sqlEmpleado)) {
-                    psEmp.setString(1, emp.nombre());
-                    psEmp.setString(2, emp.primerApellido());
-                    psEmp.setString(3, emp.segundoApellido());
-                    psEmp.setString(4, emp.genero() != null ? emp.genero().name() : null);
-
-                    // CORRECCIÓN CLAVE: Enviamos la fecha capturada al UPDATE
-                    if (emp.fechaAlta() != null) {
-                        psEmp.setDate(5, java.sql.Date.valueOf(emp.fechaAlta()));
-                    } else {
-                        psEmp.setNull(5, Types.DATE);
-                    }
-
-                    psEmp.setDouble(6, emp.salario());
-                    psEmp.setInt(7, emp.departamento().getId());
-                    psEmp.setInt(8, emp.id()); // Se desplaza a la posición 8
-                    psEmp.executeUpdate();
-                }
-
-                // 2. Sincronizar Teléfono de forma segura (UPDATE o INSERT según corresponda)
-                if (!emp.telefonos().isEmpty() && emp.telefonos().get(0) != null && !emp.telefonos().get(0).isBlank()) {
-                    String nuevoTelefono = emp.telefonos().get(0);
-                    boolean existeRegistro;
-
-                    try (PreparedStatement psCheck = conn.prepareStatement(sqlCheckTel)) {
-                        psCheck.setInt(1, emp.id());
-                        try (ResultSet rs = psCheck.executeQuery()) {
-                            existeRegistro = rs.next() && rs.getInt(1) > 0;
-                        }
-                    }
-
-                    if (existeRegistro) {
-                        try (PreparedStatement psUpd = conn.prepareStatement(sqlUpdateTel)) {
-                            psUpd.setString(1, nuevoTelefono);
-                            psUpd.setInt(2, emp.id());
-                            psUpd.executeUpdate();
-                        }
-                    } else {
-                        try (PreparedStatement psIns = conn.prepareStatement(sqlInsertTel)) {
-                            psIns.setString(1, nuevoTelefono);
-                            psIns.setInt(2, emp.id());
-                            psIns.executeUpdate();
-                        }
-                    }
-                }
-
-                // 3. Sincronizar Correo de forma segura (UPDATE o INSERT según corresponda)
-                if (!emp.correos().isEmpty() && emp.correos().get(0) != null && !emp.correos().get(0).isBlank()) {
-                    String nuevoCorreo = emp.correos().get(0);
-                    boolean existeRegistro;
-
-                    try (PreparedStatement psCheck = conn.prepareStatement(sqlCheckCor)) {
-                        psCheck.setInt(1, emp.id());
-                        try (ResultSet rs = psCheck.executeQuery()) {
-                            existeRegistro = rs.next() && rs.getInt(1) > 0;
-                        }
-                    }
-
-                    if (existeRegistro) {
-                        try (PreparedStatement psUpd = conn.prepareStatement(sqlUpdateCor)) {
-                            psUpd.setString(1, nuevoCorreo);
-                            psUpd.setInt(2, emp.id());
-                            psUpd.executeUpdate();
-                        }
-                    } else {
-                        try (PreparedStatement psIns = conn.prepareStatement(sqlInsertCor)) {
-                            psIns.setString(1, nuevoCorreo);
-                            psIns.setInt(2, emp.id());
-                            psIns.executeUpdate();
-                        }
-                    }
-                }
-
-                conn.commit(); // Éxito de la transacción
-                LOGGER.info("¡ÉXITO! Empleado ID " + emp.id() + " y contactos sincronizados correctamente.");
-
-            } catch (SQLException ex) {
-                conn.rollback(); // Cancelamos todo si algo falla a mitad de camino
-                throw ex;
+            // Actualizamos tabla principal
+            try (PreparedStatement psEmp = conn.prepareStatement(sqlUpdateEmpleado)) {
+                psEmp.setString(1, empleado.nombre());
+                psEmp.setString(2, empleado.primerApellido());
+                psEmp.setString(3, empleado.segundoApellido());
+                psEmp.setString(4, empleado.genero() != null ? empleado.genero().name() : null);
+                psEmp.setDate(5, empleado.fechaAlta() != null ? Date.valueOf(empleado.fechaAlta()) : null);
+                psEmp.setDouble(6, empleado.salario());
+                if (empleado.departamento() != null) psEmp.setInt(7, empleado.departamento().getId()); else psEmp.setNull(7, Types.INTEGER);
+                psEmp.setInt(8, empleado.id());
+                psEmp.executeUpdate();
             }
+
+            // Preparamos nuevos datos en memoria (Si hay duplicados, saltará el catch AQUÍ antes de borrar)
+            List<String> telfs = empleado.telefonos();
+            List<String> mails = empleado.correos();
+
+            // Limpiamos datos antiguos si las listas traen contenidio
+            if (telfs != null && !telfs.isEmpty()) {
+                try (PreparedStatement psDel = conn.prepareStatement(sqlDeleteTelefonos)) { psDel.setInt(1, empleado.id()); psDel.executeUpdate(); }
+                try (PreparedStatement psIns = conn.prepareStatement(sqlInsertTelefono)) {
+                    for (String tel : telfs) { psIns.setString(1, tel); psIns.setInt(2, empleado.id()); psIns.addBatch(); }
+                    psIns.executeBatch();
+                }
+            }
+            if (mails != null && !mails.isEmpty()) {
+                try (PreparedStatement psDel = conn.prepareStatement(sqlDeleteCorreos)) { psDel.setInt(1, empleado.id()); psDel.executeUpdate(); }
+                try (PreparedStatement psIns = conn.prepareStatement(sqlInsertCorreo)) {
+                    for (String mail : mails) { psIns.setString(1, mail); psIns.setInt(2, empleado.id()); psIns.addBatch(); }
+                    psIns.executeBatch();
+                }
+            }
+
+            conn.commit(); // Todo ha ido perfecto, guardamos físicamente
+            LOGGER.info("Empleado ID " + empleado.id() + " actualizado con éxito.");
+        //Si la DB detecta duplicado, salta el bloque haciendo el rollBack
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Error crítico en Repository.update relacional", e);
-            throw new RuntimeException("Error al actualizar el empleado: " + e.getMessage());
+            if (conn != null) { try { conn.rollback(); } catch (SQLException ex) { LOGGER.severe(ex.getMessage()); } }
+
+            // Mensaje si hay un error duplicado (UNIQUE)
+            String msg = e.getMessage();
+            if (msg.contains("Duplicate entry")) {
+                throw new RuntimeException(msg.contains("telefonos") ? "El número de teléfono ya existe en el sistema." : "El correo electrónico ya existe en el sistema.");
+            }
+            throw new RuntimeException("Error en la actualización: " + msg);
+        } finally {
+            if (conn != null) { try { conn.close(); } catch (SQLException e) { LOGGER.severe(e.getMessage()); } }
         }
     }
 
+
+    //................................. delete ..............................................
+    @Override
+    public void delete(int id) {
+        //Borrado con Integridad Referencial. Primero se borran los hijos, despues los padres, ya que no se permite hijos huerfanos
+        String sqlDeleteTels = "DELETE FROM empresa_crud_empleados.telefonos WHERE empleados_id = ?";
+        String sqlDeleteCors = "DELETE FROM empresa_crud_empleados.correos WHERE empleados_id = ?";
+        String sqlDeleteEmp = "DELETE FROM empresa_crud_empleados.empleados WHERE id = ?";
+
+        Connection conn = null;
+        try {
+            conn = dbConexion.getConnection();
+            conn.setAutoCommit(false); // Transacción para asegurar que se borra todo o nada
+
+            // 1. Borrar Teléfonos
+            try (PreparedStatement psTel = conn.prepareStatement(sqlDeleteTels)) {
+                psTel.setInt(1, id);
+                psTel.executeUpdate();
+            }
+
+            // 2. Borrar Correos
+            try (PreparedStatement psCor = conn.prepareStatement(sqlDeleteCors)) {
+                psCor.setInt(1, id);
+                psCor.executeUpdate();
+            }
+
+            // 3. Borrar Empleado
+            try (PreparedStatement psEmp = conn.prepareStatement(sqlDeleteEmp)) {
+                psEmp.setInt(1, id);
+                int filasAfectadas = psEmp.executeUpdate();
+                if (filasAfectadas == 0) {
+                    throw new SQLException("No se encontró el empleado con ID: " + id);
+                }
+            }
+
+            conn.commit();
+            LOGGER.info("Empleado y sus contactos eliminados con éxito. ID: " + id);
+
+        } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
+            throw new RuntimeException("Error crítico al eliminar el empleado", e);
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
 
 
 }

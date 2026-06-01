@@ -46,14 +46,19 @@ public class AltaController extends HttpServlet {
         try {
             String nombre = request.getParameter("nombre");
 
-            // Tratamiento del primer apellido como opcional
-            String primerApellido = request.getParameter("primerApellido");
-            if (primerApellido == null) { primerApellido = ""; }
 
+            String primerApellido = request.getParameter("primerApellido");
+            // Tratamiento del segundo apellido como opcional
             String segundoApellido = request.getParameter("segundoApellido") == null ? "" : request.getParameter("segundoApellido");
             LocalDate fechaAlta = LocalDate.parse(request.getParameter("fechaAlta"));
             Genero genero = Genero.valueOf(request.getParameter("genero").toUpperCase());
-            double salario = Double.parseDouble(request.getParameter("salario"));
+//            double salario = Double.parseDouble(request.getParameter("salario"));
+
+            // 1. Leemos el número crudo enviado por el usuario
+            double salarioEntrada = Double.parseDouble(request.getParameter("salario"));
+
+            // 2. REDONDEO A 2 DECIMALES: Multiplica por 100, redondea al entero más cercano y divide entre 100.0
+            double salario = Math.round(salarioEntrada * 100.0) / 100.0;
 
             int departamentoId = Integer.parseInt(request.getParameter("departamentoId"));
             Departamento depto = new Departamento(departamentoId, null);
@@ -79,7 +84,7 @@ public class AltaController extends HttpServlet {
                 telefonos = List.of();
             }
 
-            // 3. CONSTRUCCIÓN CORRECTA CON BUILDER (Añadido .id(0))
+            // 3. CONSTRUCCIÓN CORRECTA CON BUILDER (Añadimos .id(0))
             Empleado nuevoEmpleado = Empleado.builder()
                     .id(0)                  // <- SOLUCCIÓN: Forzamos el ID a 0 para altas nuevas
                     .nombre(nombre)
@@ -105,6 +110,7 @@ public class AltaController extends HttpServlet {
             cargarAtributosComunes(request);
             request.getRequestDispatcher("views/formularioAltaModificacion.jsp").forward(request, response);
         }
+
     }
 
 

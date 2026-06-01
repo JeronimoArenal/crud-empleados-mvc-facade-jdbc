@@ -13,6 +13,13 @@
         th { background-color: #4CAF50; color: white; }
         tr:nth-child(even){ background-color: #f9f9f9; }
         .back-link { display: inline-block; margin-bottom: 20px; color: #4CAF50; text-decoration: none; font-weight: bold; }
+
+        /* NUEVOS ESTILOS: Contenedor para alinear las acciones de forma limpia */
+        .actions-container { display: flex; gap: 10px; }
+        .btn-action { font-weight: bold; text-decoration: none; }
+        .btn-view { color: #0275d8; }
+        .btn-edit { color: #f0ad4e; }
+        .btn-delete { color: #d9534f; }
     </style>
 </head>
 <body>
@@ -26,7 +33,6 @@
 //Como metemos etiquetas HTML en medio, tenemos que abrir <% solo para cerrar la llave } de Java y abrir el else.
  --%>
     <%
-
         List<Empleado> lista = (List<Empleado>) request.getAttribute("listaEmpleados");
         String errorMensaje = (String) request.getAttribute("errorMensaje");
         int totalRegistros = (lista != null) ? lista.size() : 0;        // Calculamos el tamaño total de la lista
@@ -38,7 +44,7 @@
 
     <div class="header-container">
         <!-- El contador dinámico queda integrado aquí dentro -->
-        <h2 style="display: inline-block; margin: 0;">Registros obtenidos desde la Base de Datos (<%= totalRegistros %>)</h2>
+        <h2 style="display: inline-block; margin: 0;">Registros obtenidos desde la Base Datos (<%= totalRegistros %>)</h2>
     </div>
 
     <%
@@ -59,36 +65,46 @@
             <th>Contacto</th>
             <th>Fecha Alta</th>
             <th>Salario</th>
+            <th>Acciones</th> <!-- NUEVA CABECERA -->
         </tr>
     </thead>
     <tbody>
         <% for (Empleado emp : lista) { %>
             <tr>
-                <!-- ÚNICO ENLACE EN EL ID -->
-                <td>
-                    <a class="table-link" href="${pageContext.request.contextPath}/EmpleadoController?accion=editar&id=<%= emp.id() %>">
-                        <%= emp.id() %>
-                    </a>
-                </td>
-
-                <!-- NOMBRE COMO TEXTO NORMAL -->
+                <td><%= emp.id() %></td>
                 <td><%= emp.nombre() %> <%= emp.primerApellido() %> <%= emp.segundoApellido() %></td>
-
                 <td><%= emp.genero() != null ? emp.genero() : "N/A" %></td>
-
                 <td><%= emp.departamento() != null ? emp.departamento().getNombre() : "Sin asignar" %></td>
 
                 <td>
-                    <strong>Tel:</strong> <%= !emp.telefonos().isEmpty() ? emp.telefonos().get(0) : "N/A" %><br>
-                    <strong>Email:</strong> <%= !emp.correos().isEmpty() ? emp.correos().get(0) : "N/A" %>
+                    <!-- Unimos todos los teléfonos y correos separados por coma -->
+                    <strong>Tel:</strong>
+                    <%= !emp.telefonos().isEmpty() ? String.join("; ", emp.telefonos()) : "N/A" %>
+                    <br>
+                    <strong>Email:</strong>
+                    <%= !emp.correos().isEmpty() ? String.join("; ", emp.correos()) : "N/A" %>
                 </td>
 
                 <td><%= emp.fechaAlta() != null ? emp.fechaAlta() : "N/A" %></td>
-                <td>$<%= emp.salario() %></td>
+                <td><%= String.format("%.2f", emp.salario()) %></td>
+
+                <!-- Celda de Acciones unificadas -->
+                <td>
+                    <div class="actions-container">
+                        <a class="btn-action btn-view" href="${pageContext.request.contextPath}/EmpleadoController?accion=ver&id=<%= emp.id() %>">Ver</a>
+
+                        |
+                        <a class="btn-action btn-edit" href="${pageContext.request.contextPath}/EmpleadoController?accion=editar&id=<%= emp.id() %>">Editar</a>
+                        |
+                        <a class="btn-action btn-delete" href="${pageContext.request.contextPath}/EmpleadoController?accion=eliminar&id=<%= emp.id() %>"
+                           onclick="return confirm('¿Estás seguro de que deseas eliminar a <%= emp.nombre() %> y todos sus contactos?');">
+                           Eliminar
+                        </a>
+                    </div>
+                </td>
             </tr>
         <% } %>
     </tbody>
-
 </table>
 
     <%

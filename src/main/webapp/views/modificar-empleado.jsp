@@ -2,14 +2,7 @@
 <%@ page import="java.util.List" %>
 <%@ page import="com.example.model.Departamento" %>
 <%@ page import="com.example.model.Empleado" %>
-<%
-    // 1. Recuperamos el objeto empleado que el servlet nos envía para editar
-    Empleado emp = (Empleado) request.getAttribute("empleado");
 
-    // 2. Extraemos de forma segura el teléfono y correo de las listas del Record
-    String telefonoValue = (emp != null && emp.telefonos() != null && !emp.telefonos().isEmpty()) ? emp.telefonos().get(0) : "";
-    String correoValue = (emp != null && emp.correos() != null && !emp.correos().isEmpty()) ? emp.correos().get(0) : "";
-%>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -32,10 +25,20 @@
     </style>
 </head>
 <body>
+<%
+    // Recuperamos los objetos directamente desde el request mediante código Java tradicional
+    Empleado emp = (Empleado) request.getAttribute("empleado");
+    List<Departamento> departamentos = (List<Departamento>) request.getAttribute("listaDepartamentos");
+    String telefonoTexto = (request.getAttribute("telefonoTexto") != null) ? (String) request.getAttribute("telefonoTexto") : "";
+    String correoTexto = (request.getAttribute("correoTexto") != null) ? (String) request.getAttribute("correoTexto") : "";
+
+    // Obtenemos el context path de la aplicación sin usar Expression Language
+    String contextPath = request.getContextPath();
+%>
 
     <div class="form-container">
         <h2>Modificar Empleado</h2>
-        <form action="${pageContext.request.contextPath}/EmpleadoController" method="POST">
+        <form action="<%= contextPath %>/EmpleadoController" method="POST">
 
             <!-- CAMPOS OCULTOS DE CONTROL -->
             <input type="hidden" name="accion" value="modificar">
@@ -44,20 +47,20 @@
             <!-- DATOS PERSONALES -->
             <div class="form-group">
                 <label for="nombre">Nombre:</label>
-                <input type="text" id="nombre" name="nombre" value="<%= emp != null ? emp.nombre() : "" %>" required>
+                <input type="text" id="nombre" name="nombre" value="<%= (emp != null) ? emp.nombre() : "" %>" required>
             </div>
 
             <div class="form-group">
                 <label for="primerApellido">Primer Apellido:</label>
-                <input type="text" id="primerApellido" name="primerApellido" value="<%= emp != null ? emp.primerApellido() : "" %>" required>
+                <input type="text" id="primerApellido" name="primerApellido" value="<%= (emp != null) ? emp.primerApellido() : "" %>" required>
             </div>
 
             <div class="form-group">
                 <label for="segundoApellido">Segundo Apellido:</label>
-                <input type="text" id="segundoApellido" name="segundoApellido" value="<%= emp != null ? emp.segundoApellido() : "" %>">
+                <input type="text" id="segundoApellido" name="segundoApellido" value="<%= (emp != null && emp.segundoApellido() != null) ? emp.segundoApellido() : "" %>">
             </div>
 
-            <!-- CAMBIO: Mapeo a botones de opción (Radio Buttons) con persistencia -->
+            <!-- GÉNERO CON SCRIPTLETS -->
             <div class="form-group">
                 <label>Género:</label>
                 <div class="radio-group">
@@ -73,10 +76,10 @@
                 </div>
             </div>
 
-            <!-- CAMBIO: Ahora la fecha es visible y modificable, carga la fecha real del empleado -->
+            <!-- FECHA DE ALTA -->
             <div class="form-group">
                 <label for="fechaAlta">Fecha de Alta:</label>
-                <input type="date" id="fechaAlta" name="fechaAlta" value="<%= emp != null ? emp.fechaAlta() : "" %>" required>
+                <input type="date" id="fechaAlta" name="fechaAlta" value="<%= (emp != null && emp.fechaAlta() != null) ? emp.fechaAlta() : "" %>" required>
             </div>
 
             <!-- ASIGNACIÓN OBLIGATORIA DE DEPARTAMENTO -->
@@ -85,7 +88,6 @@
                 <select id="departamentoId" name="departamentoId" required>
                     <option value="">-- Seleccione un departamento --</option>
                     <%
-                    List<Departamento> departamentos = (List<Departamento>) request.getAttribute("listaDepartamentos");
                     if (departamentos != null) {
                         for (Departamento dept : departamentos) {
                             boolean esSuDepartamento = (emp != null && emp.departamento() != null && emp.departamento().getId() == dept.getId());
@@ -93,31 +95,32 @@
                         <option value="<%= dept.getId() %>" <%= esSuDepartamento ? "selected" : "" %>><%= dept.getNombre() %></option>
                     <%
                         }
-                    }
+                    } // CORRECCIÓN: Cierre nativo correcto de las llaves del 'for' y del 'if'
                     %>
                 </select>
             </div>
 
+            <!-- SALARIO -->
             <div class="form-group">
                 <label for="salario">Salario:</label>
-                <input type="number" id="salario" name="salario" step="0.01" value="<%= emp != null ? emp.salario() : "" %>" required>
+                <input type="number" id="salario" name="salario" step="0.01" value="<%= (emp != null) ? emp.salario() : "" %>" required>
             </div>
 
             <!-- SECCIÓN: DATOS DE CONTACTO -->
             <div class="section-title">Información de Contacto</div>
 
             <div class="form-group">
-                <label for="telefono">Teléfono:</label>
-                <input type="tel" id="telefono" name="telefono" placeholder="Ej: 600112233" value="<%= telefonoValue %>" required>
+                <label for="telefono">Teléfonos (separados por punto y coma):</label>
+                <input type="text" id="telefono" name="telefono" placeholder="Ej: 600112233; 611223344" value="<%= telefonoTexto %>" required>
             </div>
 
             <div class="form-group">
-                <label for="correo">Correo Electrónico:</label>
-                <input type="email" id="correo" name="correo" placeholder="Ej: nombre@empresa.com" value="<%= correoValue %>" required>
+                <label for="correo">Correos Electrónicos (separados por punto y coma):</label>
+                <input type="text" id="correo" name="correo" placeholder="Ej: uno@web.com; dos@web.com" value="<%= correoTexto %>" required>
             </div>
 
             <button type="submit" class="btn">Actualizar Empleado</button>
-            <a href="${pageContext.request.contextPath}/MainController" class="btn btn-cancel">Cancelar</a>
+            <a href="<%= contextPath %>/MainController" class="btn btn-cancel">Cancelar</a>
         </form>
     </div>
 

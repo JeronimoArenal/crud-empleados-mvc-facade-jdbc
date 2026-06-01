@@ -28,19 +28,18 @@ public class EmpleadoController extends HttpServlet {
     // ==========================================================================================
     // ROUTER GET (Equivale a @GetMapping de Spring)
     // ==========================================================================================
+    //Switch Expressions
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String accion = request.getParameter("accion");
         if (accion == null) accion = "nuevo";
 
         switch (accion) {
-            case "editar":
-                mostrarFormularioEditar(request, response);
-                break;
-            case "nuevo":
-            default:
-                mostrarFormularioNuevo(request, response);
-                break;
+            case "ver"      -> detalleEmpleado(request, response);
+            case "editar"   -> formularioEditar(request, response);
+            case "eliminar" -> eliminarEmpleado(request, response);
+            case "nuevo"    -> formularioNuevo(request, response);
+            default         -> formularioNuevo(request, response);
         }
     }
 
@@ -54,13 +53,9 @@ public class EmpleadoController extends HttpServlet {
         if (accion == null) accion = "crear";
 
         switch (accion) {
-            case "modificar":
-                actualizarEmpleado(request, response);
-                break;
-            case "crear":
-            default:
-                guardarEmpleado(request, response);
-                break;
+            case "modificar" -> actualizarEmpleado(request, response);
+            case "crear"     -> guardarEmpleado(request, response);
+            default          -> guardarEmpleado(request, response);
         }
     }
 
@@ -68,18 +63,56 @@ public class EmpleadoController extends HttpServlet {
     // MÉTODOS DE ACCIÓN GET (Manejo de vistas)
     // ==========================================================================================
 
-    private void mostrarFormularioNuevo(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    //................................. nuevoEmpelado ..............................................
+    private void formularioNuevo(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         cargarAtributosComunes(request);
         request.getRequestDispatcher("/views/nuevo-empleado.jsp").forward(request, response);
     }
 
-    private void mostrarFormularioEditar(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    //................................. verEmpleado ..............................................
+    private void detalleEmpleado(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        try {
+            // Extraemos el ID del JSP
+            int id = Integer.parseInt(request.getParameter("id"));
+
+            // Buscamos el empleado usando el método findById
+            Empleado emp = empleadoService.buscarPorId(id);
+
+            // Dejamos el objeto en el request para que el nuevo JSP pueda leerlo
+            request.setAttribute("empleado", emp);
+
+            // NUEVO: Transformamos las listas a cadenas separadas por ";" de forma segura antes de ir al JSP
+            String telefonoValue = (emp != null && emp.telefonos() != null) ? String.join("; ", emp.telefonos()) : "";
+            String correoValue = (emp != null && emp.correos() != null) ? String.join("; ", emp.correos()) : "";
+
+            // Pasamos los textos formateados como atributos independientes
+            request.setAttribute("telefonoTexto", telefonoValue);
+            request.setAttribute("correoTexto", correoValue);
+
+            // Redirigimos a la nueva vista de detalle
+            request.getRequestDispatcher("/views/detalle-empleado.jsp").forward(request, response);
+        } catch (Exception e) {
+            LOGGER.severe("Error al cargar la vista de detalle: " + e.getMessage());
+            response.sendRedirect(request.getContextPath() + "/MainController");
+        }
+    }
+
+    //................................. EditarEmpleado ..............................................
+    private void formularioEditar(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         try {
             int id = Integer.parseInt(request.getParameter("id"));
             Empleado emp = empleadoService.buscarPorId(id);
 
             request.setAttribute("empleado", emp);
             cargarAtributosComunes(request);
+
+            // Transformamos las listas a texto plano separado por ";" desde el Servlet
+            String telefonoValue = (emp != null && emp.telefonos() != null) ? String.join("; ", emp.telefonos()) : "";
+            String correoValue = (emp != null && emp.correos() != null) ? String.join("; ", emp.correos()) : "";
+
+            // Los enviamos como atributos simples a la vista
+            request.setAttribute("telefonoTexto", telefonoValue);
+            request.setAttribute("correoTexto", correoValue);
 
             request.getRequestDispatcher("/views/modificar-empleado.jsp").forward(request, response);
         } catch (Exception e) {
@@ -88,12 +121,14 @@ public class EmpleadoController extends HttpServlet {
         }
     }
 
+
     // ==========================================================================================
     // MÉTODOS DE ACCIÓN POST
     // ==========================================================================================
+    //................................. guardar ..............................................
     private void guardarEmpleado(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         try {
-            // CORRECCIÓN CLAVE: Intentamos leer la fecha enviada desde el JSP ("nuevo-empleado.jsp")
+            // Intentamos leer la fecha enviada desde el JSP ("nuevo-empleado.jsp")
             LocalDate fechaAlta;
             try {
                 String fechaAltaStr = request.getParameter("fechaAlta");
@@ -117,33 +152,105 @@ public class EmpleadoController extends HttpServlet {
         }
     }
 
-    private void actualizarEmpleado(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        try {
-            int idEmpleado = Integer.parseInt(request.getParameter("id"));
+    //................................. actualizar ..............................................
+//    private void actualizarEmpleado(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+//        try {
+//            int idEmpleado = Integer.parseInt(request.getParameter("id"));
+//
+//            // Tratamiento protector de la fecha para la edición
+//            LocalDate fechaAlta;
+//            try {
+//                String fechaAltaStr = request.getParameter("fechaAlta");
+//                if (fechaAltaStr != null && !fechaAltaStr.isBlank()) {
+//                    fechaAlta = LocalDate.parse(fechaAltaStr);
+//                } else {
+//                    // Si el input no viene, recuperamos la fecha que ya tenía guardada para no pisarla con nulo
+//                    fechaAlta = empleadoService.buscarPorId(idEmpleado).fechaAlta();
+//                }
+//            } catch (Exception e) {
+//                fechaAlta = empleadoService.buscarPorId(idEmpleado).fechaAlta();
+//            }
+//
+//            Empleado empleadoModificar = mapearEmpleadoDesdeRequest(request, idEmpleado, fechaAlta);
+//            empleadoService.modificar(empleadoModificar);
+//
+//            LOGGER.info("Empleado modificado con éxito: ID " + idEmpleado);
+//            response.sendRedirect(request.getContextPath() + "/MainController");
+//        } catch (Exception e) {
+//            redirigirConError(request, response, "/views/modificar-empleado.jsp", e);
+//        }
+//    }
 
-            // Tratamiento protector de la fecha para la edición
+    //................................. actualizar ..............................................
+    private void actualizarEmpleado(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        int idEmpleado = 0;
+        try {
+            idEmpleado = Integer.parseInt(request.getParameter("id"));
+
             LocalDate fechaAlta;
             try {
                 String fechaAltaStr = request.getParameter("fechaAlta");
                 if (fechaAltaStr != null && !fechaAltaStr.isBlank()) {
                     fechaAlta = LocalDate.parse(fechaAltaStr);
                 } else {
-                    // Si el input no viene, recuperamos la fecha que ya tenía guardada para no pisarla con nulo
                     fechaAlta = empleadoService.buscarPorId(idEmpleado).fechaAlta();
                 }
             } catch (Exception e) {
                 fechaAlta = empleadoService.buscarPorId(idEmpleado).fechaAlta();
             }
 
-            Empleado empleadoModificar = mapearEmpleadoDesdeRequest(request, idEmpleado, fechaAlta);
-            empleadoService.modificar(empleadoModificar);
+            // Mapeamos el objeto con los inputs actuales que introdujo el usuario
+            Empleado empleadoActualizado = mapearEmpleadoDesdeRequest(request, idEmpleado, fechaAlta);
 
-            LOGGER.info("Empleado modificado con éxito: ID " + idEmpleado);
+            // Intentamos guardar. Si salta UNIQUE, irá al catch de abajo
+            empleadoService.modificar(empleadoActualizado);
+
+            LOGGER.info("Empleado actualizado con éxito.");
             response.sendRedirect(request.getContextPath() + "/MainController");
+
         } catch (Exception e) {
+            LOGGER.severe("Error al procesar la actualización: " + e.getMessage());
+
+            // CORRECCIÓN CRÍTICA: Recuperamos los textos tal y como los escribió el usuario para no perderlos
+            String telefonoTexto = request.getParameter("telefono");
+            String correoTexto = request.getParameter("correo");
+
+            // Si por algún motivo falló el mapeo inicial, volvemos a buscar el empleado base de la BD
+            Empleado empVuelco = null;
+            try {
+                if (idEmpleado > 0) {
+                    empVuelco = empleadoService.buscarPorId(idEmpleado);
+                }
+            } catch (Exception ex) {
+                LOGGER.severe("No se pudo re-buscar el empleado para el volcado: " + ex.getMessage());
+            }
+
+            // Volvemos a inyectar TODOS los atributos para que el JSP con scriptlets los repinte
+            request.setAttribute("empleado", empVuelco);
+            request.setAttribute("telefonoTexto", telefonoTexto != null ? telefonoTexto : "");
+            request.setAttribute("correoTexto", correoTexto != null ? correoTexto : "");
+
+            // Guardamos el mensaje de error para pintarlo en el cuadro rojo superior si tienes la variable asignada
+            request.setAttribute("errorMensaje", e.getMessage());
+
+            // Redirigimos al formulario manteniendo vivos los datos en el request
             redirigirConError(request, response, "/views/modificar-empleado.jsp", e);
         }
     }
+
+
+    //................................. eliminar ..............................................
+    private void eliminarEmpleado(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        try {
+            int id = Integer.parseInt(request.getParameter("id"));
+            empleadoService.eliminar(id); // O .delete(id) según tu interfaz
+            LOGGER.info("Empleado ID " + id + " eliminado.");
+        } catch (Exception e) {
+            LOGGER.severe("Error al eliminar: " + e.getMessage());
+        }
+        response.sendRedirect(request.getContextPath() + "/MainController");
+    }
+
 
 
     // ==========================================================================================
@@ -176,13 +283,32 @@ public class EmpleadoController extends HttpServlet {
         int departamentoId = Integer.parseInt(request.getParameter("departamentoId"));
         Departamento depto = new Departamento(departamentoId, null);
 
-        String telefono = request.getParameter("telefono");
-        String correo = request.getParameter("correo");
-        List<String> telefonos = (telefono != null && !telefono.isBlank()) ? List.of(telefono) : List.of();
-        List<String> correos = (correo != null && !correo.isBlank()) ? List.of(correo) : List.of();
+        String telefonoRaw = request.getParameter("telefono");
+        String correoRaw = request.getParameter("correo");
+
+        // Procesar teléfonos: cortamos por ";" y limpiamos espacios de cada uno
+        List<String> telefonos = new java.util.ArrayList<>();
+        if (telefonoRaw != null && !telefonoRaw.isBlank()) {
+            for (String tel : telefonoRaw.split(";")) {
+                if (!tel.trim().isEmpty()) {
+                    telefonos.add(tel.trim());
+                }
+            }
+        }
+
+        // Procesar correos: cortamos por ";" y limpiamos espacios de cada uno
+        List<String> correos = new java.util.ArrayList<>();
+        if (correoRaw != null && !correoRaw.isBlank()) {
+            for (String mail : correoRaw.split(";")) {
+                if (!mail.trim().isEmpty()) {
+                    correos.add(mail.trim());
+                }
+            }
+        }
 
         return new Empleado(id, nombre, primerApellido, segundoApellido, genero, fechaAlta, salario, depto, telefonos, correos);
     }
+
 
     /**
      * Gestión unificada de fallos de validación o base de datos en las peticiones POST

@@ -29,6 +29,14 @@ public class EmpleadoServiceImpl implements EmpleadoService {
         return empleadoRepository.findAll();
     }
 
+    //................................. guardar ..............................................
+    @Override
+    public void guardar(Empleado emp) {
+        // Ejecutamos el método de validaciones antes de tocar la base de datos
+        ejecutarValidacionesDeNegocio(emp);
+        empleadoRepository.save(emp);
+    }
+
     //................................. buscarPorId ..............................................
     @Override
     public Empleado buscarPorId(int id) {
@@ -38,28 +46,31 @@ public class EmpleadoServiceImpl implements EmpleadoService {
         return empleadoRepository.findById(id);
     }
 
-    //................................. guardar ..............................................
-    @Override
-    public void guardar(Empleado emp) {
-        // Ejecutamos el motor de validaciones antes de tocar la base de datos
-        ejecutarValidacionesDeNegocio(emp);
-        empleadoRepository.save(emp);
-    }
-
     //................................. modificar ..............................................
     @Override
     public void modificar(Empleado emp) {
         if (emp.id() <= 0) {
             throw new IllegalArgumentException("No se puede modificar un empleado sin un ID válido.");
         }
-        // Ejecutamos el mismo motor de validaciones
+        // Ejecutamos el metodo de validaciones antes de actualizar
         ejecutarValidacionesDeNegocio(emp);
         empleadoRepository.update(emp);
     }
 
+    //................................. eliminar ..............................................
+    @Override
+    public void eliminar(int id) {
+        // Validación de seguridad para evitar llamadas con IDs corruptos
+        if (id <= 0) {
+            throw new IllegalArgumentException("No se puede eliminar un empleado sin un ID válido.");
+        }
+        // Delegamos de forma limpia el borrado en cascada relacional al repositorio
+        empleadoRepository.delete(id);
+    }
+
     //................................. Validaciones Privadas Centralizadas ..............................................
     /**
-     * Valida las reglas de negocio del objeto Empleado (Equivale a tu @Valid de Spring Boot)
+     * Valida las reglas de negocio del objeto Empleado (Equivale a @Valid de Spring Boot)
      */
     private void ejecutarValidacionesDeNegocio(Empleado emp) {
         if (emp.nombre() == null || emp.nombre().isBlank()) {

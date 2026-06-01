@@ -86,7 +86,7 @@
 
             <div class="form-group">
                 <label for="correo">Correo Electrónico:</label>
-                <input type="email" id="correo" name="correo" placeholder="Ej: nombre@empresa.com" required>
+                <input type="text" id="correo" name="correo" placeholder="Ej: nombre@empresa.com" required>
             </div>
 
             <button type="submit" class="btn">Guardar Empleado</button>
