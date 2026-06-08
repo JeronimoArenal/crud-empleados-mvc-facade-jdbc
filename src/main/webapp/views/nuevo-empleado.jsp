@@ -81,12 +81,12 @@
 
             <div class="form-group">
                 <label for="telefono">Teléfono:</label>
-                <input type="tel" id="telefono" name="telefono" placeholder="Ej: 600112233" required>
+                <input type="tel" id="telefono" name="telefono" placeholder="Ej: 600112233">
             </div>
 
             <div class="form-group">
                 <label for="correo">Correo Electrónico:</label>
-                <input type="text" id="correo" name="correo" placeholder="Ej: nombre@empresa.com" required>
+                <input type="text" id="correo" name="correo" placeholder="Ej: nombre@empresa.com">
             </div>
 
             <button type="submit" class="btn">Guardar Empleado</button>

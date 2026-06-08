@@ -72,16 +72,16 @@ public class EmpleadoController extends HttpServlet {
     //................................. verEmpleado ..............................................
     private void detalleEmpleado(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         try {
-            // Extraemos el ID del JSP
+            // Extraemos el ID del JSP que viene como String y convertimos a Integer
             int id = Integer.parseInt(request.getParameter("id"));
 
             // Buscamos el empleado usando el método findById
             Empleado emp = empleadoService.buscarPorId(id);
 
-            // Dejamos el objeto en el request para que el nuevo JSP pueda leerlo
+            // Guardamos el objeto empleado en el request para que el nuevo JSP pueda leerlo
             request.setAttribute("empleado", emp);
 
-            // NUEVO: Transformamos las listas a cadenas separadas por ";" de forma segura antes de ir al JSP
+            // Transformamos las listas a cadenas separadas por ";" de forma segura antes de ir al JSP
             String telefonoValue = (emp != null && emp.telefonos() != null) ? String.join("; ", emp.telefonos()) : "";
             String correoValue = (emp != null && emp.correos() != null) ? String.join("; ", emp.correos()) : "";
 
@@ -153,35 +153,6 @@ public class EmpleadoController extends HttpServlet {
     }
 
     //................................. actualizar ..............................................
-//    private void actualizarEmpleado(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-//        try {
-//            int idEmpleado = Integer.parseInt(request.getParameter("id"));
-//
-//            // Tratamiento protector de la fecha para la edición
-//            LocalDate fechaAlta;
-//            try {
-//                String fechaAltaStr = request.getParameter("fechaAlta");
-//                if (fechaAltaStr != null && !fechaAltaStr.isBlank()) {
-//                    fechaAlta = LocalDate.parse(fechaAltaStr);
-//                } else {
-//                    // Si el input no viene, recuperamos la fecha que ya tenía guardada para no pisarla con nulo
-//                    fechaAlta = empleadoService.buscarPorId(idEmpleado).fechaAlta();
-//                }
-//            } catch (Exception e) {
-//                fechaAlta = empleadoService.buscarPorId(idEmpleado).fechaAlta();
-//            }
-//
-//            Empleado empleadoModificar = mapearEmpleadoDesdeRequest(request, idEmpleado, fechaAlta);
-//            empleadoService.modificar(empleadoModificar);
-//
-//            LOGGER.info("Empleado modificado con éxito: ID " + idEmpleado);
-//            response.sendRedirect(request.getContextPath() + "/MainController");
-//        } catch (Exception e) {
-//            redirigirConError(request, response, "/views/modificar-empleado.jsp", e);
-//        }
-//    }
-
-    //................................. actualizar ..............................................
     private void actualizarEmpleado(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         int idEmpleado = 0;
         try {
@@ -230,14 +201,11 @@ public class EmpleadoController extends HttpServlet {
             request.setAttribute("telefonoTexto", telefonoTexto != null ? telefonoTexto : "");
             request.setAttribute("correoTexto", correoTexto != null ? correoTexto : "");
 
-            // Guardamos el mensaje de error para pintarlo en el cuadro rojo superior si tienes la variable asignada
-            request.setAttribute("errorMensaje", e.getMessage());
 
             // Redirigimos al formulario manteniendo vivos los datos en el request
             redirigirConError(request, response, "/views/modificar-empleado.jsp", e);
         }
     }
-
 
     //................................. eliminar ..............................................
     private void eliminarEmpleado(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {

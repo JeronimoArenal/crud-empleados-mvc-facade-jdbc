@@ -67,12 +67,14 @@
             </div>
 
             <!-- BOTONES DE NAVEGACIÓN DIRECTA -->
-            <a href="${pageContext.request.contextPath}/EmpleadoController?accion=editar&id=<%= emp.id() %>" class="btn">Editar Datos</a>
-            <a href="${pageContext.request.contextPath}/MainController" class="btn btn-cancel">Volver al Listado</a>
+            <a href="<%= request.getContextPath() %>/EmpleadoController?accion=editar&id=<%= emp.id() %>" class="btn">Editar Datos</a>
+            <a href="<%= request.getContextPath() %>/MainController" class="btn btn-cancel">Volver al Listado</a>
+
 
         <% } else { %>
             <h2>Error de Lectura</h2>
             <p>No se han podido recuperar los datos del empleado solicitado de la base de datos.</p>
+            <!-- Forma moderna estándar con Expresion Language en vez de Scriptlet -->
             <a href="${pageContext.request.contextPath}/MainController" class="btn btn-cancel">Volver al Listado</a>
         <% } %>
     </div>

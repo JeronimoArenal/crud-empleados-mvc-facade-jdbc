@@ -13,5 +13,4 @@ public interface EmpleadoService {
     Empleado buscarPorId(int id);
     void modificar(Empleado emp);
     void eliminar(int id);
-
 }

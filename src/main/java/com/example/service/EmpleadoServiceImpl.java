@@ -68,10 +68,7 @@ public class EmpleadoServiceImpl implements EmpleadoService {
         empleadoRepository.delete(id);
     }
 
-    //................................. Validaciones Privadas Centralizadas ..............................................
-    /**
-     * Valida las reglas de negocio del objeto Empleado (Equivale a @Valid de Spring Boot)
-     */
+    //................................. Validaciones (Equivale a @Valid de Spring Boot) ..............................................
     private void ejecutarValidacionesDeNegocio(Empleado emp) {
         if (emp.nombre() == null || emp.nombre().isBlank()) {
             throw new IllegalArgumentException("El nombre del empleado es un campo obligatorio.");

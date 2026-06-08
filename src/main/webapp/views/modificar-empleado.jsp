@@ -40,24 +40,27 @@
         <h2>Modificar Empleado</h2>
         <form action="<%= contextPath %>/EmpleadoController" method="POST">
 
-            <!-- CAMPOS OCULTOS DE CONTROL -->
+            <!-- CAMPOS OCULTOS -->
             <input type="hidden" name="accion" value="modificar">
             <input type="hidden" name="id" value="<%= emp != null ? emp.id() : 0 %>">
 
             <!-- DATOS PERSONALES -->
             <div class="form-group">
                 <label for="nombre">Nombre:</label>
-                <input type="text" id="nombre" name="nombre" value="<%= (emp != null) ? emp.nombre() : "" %>" required>
+                <input type="text" id="nombre" name="nombre"
+                value="<%= (emp != null) ? emp.nombre() : "" %>" required>
             </div>
 
             <div class="form-group">
                 <label for="primerApellido">Primer Apellido:</label>
-                <input type="text" id="primerApellido" name="primerApellido" value="<%= (emp != null) ? emp.primerApellido() : "" %>" required>
+                <input type="text" id="primerApellido" name="primerApellido"
+                value="<%= (emp != null) ? emp.primerApellido() : "" %>" required>
             </div>
 
             <div class="form-group">
                 <label for="segundoApellido">Segundo Apellido:</label>
-                <input type="text" id="segundoApellido" name="segundoApellido" value="<%= (emp != null && emp.segundoApellido() != null) ? emp.segundoApellido() : "" %>">
+                <input type="text" id="segundoApellido" name="segundoApellido"
+                value="<%= (emp != null && emp.segundoApellido() != null) ? emp.segundoApellido() : "" %>">
             </div>
 
             <!-- GÉNERO CON SCRIPTLETS -->
@@ -65,13 +68,16 @@
                 <label>Género:</label>
                 <div class="radio-group">
                     <label class="radio-label">
-                        <input type="radio" id="generoHombre" name="genero" value="HOMBRE" <%= (emp != null && emp.genero() != null && "HOMBRE".equals(emp.genero().name())) ? "checked" : "" %>> Hombre
+                        <input type="radio" id="generoHombre" name="genero"
+                        value="HOMBRE" <%= (emp != null && emp.genero() != null && "HOMBRE".equals(emp.genero().name())) ? "checked" : "" %>> Hombre
                     </label>
                     <label class="radio-label">
-                        <input type="radio" id="generoMujer" name="genero" value="MUJER" <%= (emp != null && emp.genero() != null && "MUJER".equals(emp.genero().name())) ? "checked" : "" %>> Mujer
+                        <input type="radio" id="generoMujer" name="genero"
+                        value="MUJER" <%= (emp != null && emp.genero() != null && "MUJER".equals(emp.genero().name())) ? "checked" : "" %>> Mujer
                     </label>
                     <label class="radio-label">
-                        <input type="radio" id="generoOtro" name="genero" value="OTRO" <%= (emp != null && emp.genero() != null && "OTRO".equals(emp.genero().name())) ? "checked" : "" %>> Otro
+                        <input type="radio" id="generoOtro" name="genero"
+                        value="OTRO" <%= (emp != null && emp.genero() != null && "OTRO".equals(emp.genero().name())) ? "checked" : "" %>> Otro
                     </label>
                 </div>
             </div>
@@ -79,7 +85,8 @@
             <!-- FECHA DE ALTA -->
             <div class="form-group">
                 <label for="fechaAlta">Fecha de Alta:</label>
-                <input type="date" id="fechaAlta" name="fechaAlta" value="<%= (emp != null && emp.fechaAlta() != null) ? emp.fechaAlta() : "" %>" required>
+                <input type="date" id="fechaAlta" name="fechaAlta"
+                value="<%= (emp != null && emp.fechaAlta() != null) ? emp.fechaAlta() : "" %>" required>
             </div>
 
             <!-- ASIGNACIÓN OBLIGATORIA DE DEPARTAMENTO -->
@@ -103,7 +110,8 @@
             <!-- SALARIO -->
             <div class="form-group">
                 <label for="salario">Salario:</label>
-                <input type="number" id="salario" name="salario" step="0.01" value="<%= (emp != null) ? emp.salario() : "" %>" required>
+                <input type="number" id="salario" name="salario" step="0.01"
+                value="<%= (emp != null) ? emp.salario() : "" %>" required>
             </div>
 
             <!-- SECCIÓN: DATOS DE CONTACTO -->
@@ -111,12 +119,14 @@
 
             <div class="form-group">
                 <label for="telefono">Teléfonos (separados por punto y coma):</label>
-                <input type="text" id="telefono" name="telefono" placeholder="Ej: 600112233; 611223344" value="<%= telefonoTexto %>" required>
+                <input type="text" id="telefono" name="telefono" placeholder="Ej: 600112233; 611223344"
+                value="<%= telefonoTexto %>">
             </div>
 
             <div class="form-group">
                 <label for="correo">Correos Electrónicos (separados por punto y coma):</label>
-                <input type="text" id="correo" name="correo" placeholder="Ej: uno@web.com; dos@web.com" value="<%= correoTexto %>" required>
+                <input type="text" id="correo" name="correo" placeholder="Ej: uno@web.com; dos@web.com"
+                value="<%= correoTexto %>">
             </div>
 
             <button type="submit" class="btn">Actualizar Empleado</button>

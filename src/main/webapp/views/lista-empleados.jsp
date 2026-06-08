@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ page import="java.util.List" %>
 <%@ page import="com.example.model.Empleado" %>
+<%@ page import="java.math.RoundingMode" %>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -61,10 +62,11 @@
             <th>ID</th>
             <th>Nombre Completo</th>
             <th>Género</th>
-            <th>Departamento</th>
-            <th>Contacto</th>
             <th>Fecha Alta</th>
             <th>Salario</th>
+            <th>Departamento</th>
+            <th>Contacto</th>
+
             <th>Acciones</th> <!-- NUEVA CABECERA -->
         </tr>
     </thead>
@@ -74,8 +76,9 @@
                 <td><%= emp.id() %></td>
                 <td><%= emp.nombre() %> <%= emp.primerApellido() %> <%= emp.segundoApellido() %></td>
                 <td><%= emp.genero() != null ? emp.genero() : "N/A" %></td>
+                <td><%= emp.fechaAlta() != null ? emp.fechaAlta() : "N/A" %></td>
+                <td><%= String.format("%.2f", emp.salario()) %></td>
                 <td><%= emp.departamento() != null ? emp.departamento().getNombre() : "Sin asignar" %></td>
-
                 <td>
                     <!-- Unimos todos los teléfonos y correos separados por coma -->
                     <strong>Tel:</strong>
@@ -85,14 +88,16 @@
                     <%= !emp.correos().isEmpty() ? String.join("; ", emp.correos()) : "N/A" %>
                 </td>
 
-                <td><%= emp.fechaAlta() != null ? emp.fechaAlta() : "N/A" %></td>
-                <td><%= String.format("%.2f", emp.salario()) %></td>
+        <%--    <td><%= emp.salario().setScale(2, RoundingMode.HALF_UP) %></td> (Funciona solo con BigDecimal) --%>
 
                 <!-- Celda de Acciones unificadas -->
                 <td>
                     <div class="actions-container">
-                        <a class="btn-action btn-view" href="${pageContext.request.contextPath}/EmpleadoController?accion=ver&id=<%= emp.id() %>">Ver</a>
 
+                       <!-- NUEVO ENLACE: Conecta la fila actual con tu DetallesController pasando su ID -->
+                       <a class="btn-action btn-details" href="${pageContext.request.contextPath}/DetallesController?accion=mostrar&id=<%= emp.id() %>">Detalles</a>
+                        |
+                        <a class="btn-action btn-view" href="${pageContext.request.contextPath}/EmpleadoController?accion=ver&id=<%= emp.id() %>">Ver</a>
                         |
                         <a class="btn-action btn-edit" href="${pageContext.request.contextPath}/EmpleadoController?accion=editar&id=<%= emp.id() %>">Editar</a>
                         |
